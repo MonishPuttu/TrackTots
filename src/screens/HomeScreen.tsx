@@ -256,15 +256,15 @@ export default function HomeScreen() {
 
   // Navigation handlers
   const handleClassPress = (classId: string) => {
-    navigation.navigate('ClassDetail', { classId });
+    navigation.navigate('ClassesTab', { screen: 'ClassDetail', params: { classId } });
   };
 
   const handleAddClass = () => {
-    navigation.navigate('Classes', { screen: 'AddClass' });
+    navigation.navigate('ClassesTab', { screen: 'AddClass' });
   };
 
   const handleAddChild = () => {
-    navigation.navigate('Children', { screen: 'AddChild' });
+    navigation.navigate('ChildrenTab', { screen: 'AddChild' });
   };
 
   const handleViewCalendar = () => {

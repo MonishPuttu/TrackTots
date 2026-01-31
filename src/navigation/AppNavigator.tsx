@@ -7,7 +7,9 @@ import HomeScreen from '../screens/HomeScreen';
 import ChildrenScreen from '../screens/ChildrenScreen';
 import { AddChildScreen, EditChildScreen, ChildDetailScreen } from '../screens/children';
 import ClassesScreen from '../screens/ClassesScreen';
+import { AddClassScreen, EditClassScreen, ClassDetailScreen, MapPickerScreen } from '../screens/classes';
 import AttendanceScreen from '../screens/AttendanceScreen';
+import { ManualAttendanceScreen, DayDetailScreen } from '../screens/attendance';
 import ReportsScreen from '../screens/ReportsScreen';
 
 // Stack param lists
@@ -16,6 +18,27 @@ type ChildrenStackParamList = {
   AddChild: undefined;
   EditChild: { childId: string };
   ChildDetail: { childId: string };
+};
+
+type ClassesStackParamList = {
+  ClassesList: undefined;
+  AddClass: { childId?: string; selectedLocation?: LocationParam };
+  EditClass: { classId: string; selectedLocation?: LocationParam };
+  ClassDetail: { classId: string };
+  MapPicker: { initialLocation?: LocationParam; returnScreen?: string; classId?: string };
+};
+
+type AttendanceStackParamList = {
+  AttendanceList: undefined;
+  ManualAttendance: { preselectedDate?: string; preselectedClassId?: string };
+  DayDetail: { date: string };
+};
+
+type LocationParam = {
+  latitude: number;
+  longitude: number;
+  locationName: string;
+  address: string;
 };
 
 // Tab param list
@@ -29,6 +52,8 @@ type RootTabParamList = {
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const ChildrenStack = createNativeStackNavigator<ChildrenStackParamList>();
+const ClassesStack = createNativeStackNavigator<ClassesStackParamList>();
+const AttendanceStack = createNativeStackNavigator<AttendanceStackParamList>();
 
 // Children Stack Navigator
 function ChildrenStackNavigator() {
@@ -39,6 +64,30 @@ function ChildrenStackNavigator() {
       <ChildrenStack.Screen name="EditChild" component={EditChildScreen} />
       <ChildrenStack.Screen name="ChildDetail" component={ChildDetailScreen} />
     </ChildrenStack.Navigator>
+  );
+}
+
+// Classes Stack Navigator
+function ClassesStackNavigator() {
+  return (
+    <ClassesStack.Navigator screenOptions={{ headerShown: false }}>
+      <ClassesStack.Screen name="ClassesList" component={ClassesScreen} />
+      <ClassesStack.Screen name="AddClass" component={AddClassScreen} />
+      <ClassesStack.Screen name="EditClass" component={EditClassScreen} />
+      <ClassesStack.Screen name="ClassDetail" component={ClassDetailScreen} />
+      <ClassesStack.Screen name="MapPicker" component={MapPickerScreen} />
+    </ClassesStack.Navigator>
+  );
+}
+
+// Attendance Stack Navigator
+function AttendanceStackNavigator() {
+  return (
+    <AttendanceStack.Navigator screenOptions={{ headerShown: false }}>
+      <AttendanceStack.Screen name="AttendanceList" component={AttendanceScreen} />
+      <AttendanceStack.Screen name="ManualAttendance" component={ManualAttendanceScreen} />
+      <AttendanceStack.Screen name="DayDetail" component={DayDetailScreen} />
+    </AttendanceStack.Navigator>
   );
 }
 
@@ -74,7 +123,7 @@ export default function AppNavigator() {
       />
       <Tab.Screen
         name="ClassesTab"
-        component={ClassesScreen}
+        component={ClassesStackNavigator}
         options={{
           title: 'Classes',
           tabBarIcon: ({ color, size }: { color: string; size: number }) => <MapPin color={color} size={size} />,
@@ -82,7 +131,7 @@ export default function AppNavigator() {
       />
       <Tab.Screen
         name="Attendance"
-        component={AttendanceScreen}
+        component={AttendanceStackNavigator}
         options={{
           tabBarIcon: ({ color, size }: { color: string; size: number }) => <Calendar color={color} size={size} />,
         }}
