@@ -222,7 +222,7 @@ export default function AddClassScreen() {
         childId: selectedChildId,
         name: className.trim(),
         category,
-        color: selectedColor,
+        color: CLASS_COLORS[selectedColor],
         locationName: locationName.trim(),
         locationAddress: locationAddress.trim() || undefined,
         latitude,
@@ -238,12 +238,17 @@ export default function AddClassScreen() {
         autoAttendanceEnabled: true,
       });
 
-      navigation.goBack();
+      // Navigate back to classes list after successful save
+      setIsSaving(false);
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.navigate('ClassesList');
+      }
     } catch (error) {
       console.error('Error creating class:', error);
-      Alert.alert('Error', 'Failed to create class. Please try again.');
-    } finally {
       setIsSaving(false);
+      Alert.alert('Error', 'Failed to create class. Please try again.');
     }
   };
 

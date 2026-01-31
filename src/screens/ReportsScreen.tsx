@@ -8,8 +8,9 @@ import {
   Dimensions,
   RefreshControl,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ChevronDown,
@@ -19,6 +20,7 @@ import {
   TrendingUp,
   ChevronRight,
   BarChart3,
+  Download,
 } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Q } from '@nozbe/watermelondb';
@@ -50,6 +52,7 @@ interface WeekData {
 }
 
 export default function ReportsScreen() {
+  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -327,7 +330,13 @@ export default function ReportsScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.headerTitle}>Reports</Text>
-        <BarChart3 size={24} color={COLORS.gray[800]} />
+        <TouchableOpacity 
+          style={styles.exportButton}
+          onPress={() => navigation.navigate('ExportReport')}
+        >
+          <Download size={20} color={COLORS.primary} />
+          <Text style={styles.exportButtonText}>Export</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -616,6 +625,20 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: COLORS.gray[800],
+  },
+  exportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EBF5FF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
+  },
+  exportButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
 
   // Content

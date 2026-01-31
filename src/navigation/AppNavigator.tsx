@@ -12,6 +12,7 @@ import { AddClassScreen, EditClassScreen, ClassDetailScreen, MapPickerScreen } f
 import AttendanceScreen from '../screens/AttendanceScreen';
 import { ManualAttendanceScreen, DayDetailScreen } from '../screens/attendance';
 import ReportsScreen from '../screens/ReportsScreen';
+import { ExportReportScreen } from '../screens/reports';
 
 // Stack param lists
 type ChildrenStackParamList = {
@@ -35,6 +36,11 @@ type AttendanceStackParamList = {
   DayDetail: { date: string };
 };
 
+type ReportsStackParamList = {
+  ReportsDashboard: undefined;
+  ExportReport: undefined;
+};
+
 type LocationParam = {
   latitude: number;
   longitude: number;
@@ -55,6 +61,7 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 const ChildrenStack = createNativeStackNavigator<ChildrenStackParamList>();
 const ClassesStack = createNativeStackNavigator<ClassesStackParamList>();
 const AttendanceStack = createNativeStackNavigator<AttendanceStackParamList>();
+const ReportsStack = createNativeStackNavigator<ReportsStackParamList>();
 
 // Children Stack Navigator
 function ChildrenStackNavigator() {
@@ -89,6 +96,16 @@ function AttendanceStackNavigator() {
       <AttendanceStack.Screen name="ManualAttendance" component={ManualAttendanceScreen} />
       <AttendanceStack.Screen name="DayDetail" component={DayDetailScreen} />
     </AttendanceStack.Navigator>
+  );
+}
+
+// Reports Stack Navigator
+function ReportsStackNavigator() {
+  return (
+    <ReportsStack.Navigator screenOptions={{ headerShown: false }}>
+      <ReportsStack.Screen name="ReportsDashboard" component={ReportsScreen} />
+      <ReportsStack.Screen name="ExportReport" component={ExportReportScreen} />
+    </ReportsStack.Navigator>
   );
 }
 
@@ -141,7 +158,7 @@ export default function AppNavigator() {
       />
       <Tab.Screen
         name="Reports"
-        component={ReportsScreen}
+        component={ReportsStackNavigator}
         options={{
           tabBarIcon: ({ color, size }: { color: string; size: number }) => <BarChart3 color={color} size={size} />,
         }}

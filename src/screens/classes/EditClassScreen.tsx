@@ -248,7 +248,7 @@ export default function EditClassScreen() {
         childId: selectedChildId,
         name: className.trim(),
         category,
-        color: selectedColor,
+        color: CLASS_COLORS[selectedColor],
         locationName: locationName.trim(),
         locationAddress: locationAddress.trim() || undefined,
         latitude,
@@ -263,12 +263,12 @@ export default function EditClassScreen() {
         enableAttendanceNotification,
       });
 
+      setIsSaving(false);
       navigation.goBack();
     } catch (error) {
       console.error('Error updating class:', error);
-      Alert.alert('Error', 'Failed to update class. Please try again.');
-    } finally {
       setIsSaving(false);
+      Alert.alert('Error', 'Failed to update class. Please try again.');
     }
   };
 
