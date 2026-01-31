@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "ClassAttendanceApp",
-    "slug": "class-attendance-app",
+    "name": "TrackTots",
+    "slug": "tracktots",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,7 +15,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.classattendance",
+      "bundleIdentifier": "com.tracktots.app",
       "infoPlist": {
         "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location to automatically track class attendance based on your child's class locations.",
         "NSLocationWhenInUseUsageDescription": "We need your location to track when your child arrives at class.",
@@ -28,7 +28,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.yourcompany.classattendance",
+      "package": "com.tracktots.app",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
@@ -44,14 +44,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow ClassAttendance to use your location to automatically track class attendance."
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#ffffff"
+          "locationAlwaysAndWhenInUsePermission": "Allow TrackTots to use your location to automatically track class attendance."
         }
       ]
     ]
