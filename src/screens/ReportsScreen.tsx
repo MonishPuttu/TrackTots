@@ -6,11 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
-  Platform,
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ChevronDown,
   Calendar,
@@ -50,6 +50,7 @@ interface WeekData {
 }
 
 export default function ReportsScreen() {
+  const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -324,7 +325,7 @@ export default function ReportsScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.headerTitle}>Reports</Text>
         <BarChart3 size={24} color={COLORS.gray[800]} />
       </View>
@@ -550,7 +551,6 @@ export default function ReportsScreen() {
                 })}
               </View>
             </View>
-            </View>
           ) : (
             <View style={styles.emptyState}>
               <TrendingUp size={48} color={COLORS.gray[300]} />
@@ -607,7 +607,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 20,
     paddingBottom: 16,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,

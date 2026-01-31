@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus, Users } from 'lucide-react-native';
 
 import { ChildCard } from '../components/children';
@@ -28,6 +29,7 @@ interface ChildWithStats {
 
 export default function ChildrenScreen() {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [childrenWithStats, setChildrenWithStats] = useState<ChildWithStats[]>([]);
@@ -146,7 +148,7 @@ export default function ChildrenScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header Card */}
       <View style={styles.headerCard}>
         <View style={styles.headerIconContainer}>

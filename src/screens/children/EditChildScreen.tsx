@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
   Camera,
@@ -36,6 +37,7 @@ type EditChildRouteParams = {
 export default function EditChildScreen() {
   const navigation = useNavigation();
   const route = useRoute<RouteProp<EditChildRouteParams, 'EditChild'>>();
+  const insets = useSafeAreaInsets();
   const { childId } = route.params;
 
   const [isLoading, setIsLoading] = useState(true);
@@ -212,7 +214,7 @@ export default function EditChildScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleCancel}>
           <ArrowLeft size={24} color={COLORS.gray[800]} />
         </TouchableOpacity>

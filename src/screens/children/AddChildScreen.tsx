@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
   Camera,
@@ -27,6 +28,7 @@ import { createChild } from '../../database/helpers';
 
 export default function AddChildScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
 
   const [name, setName] = useState('');
   const [nickname, setNickname] = useState('');
@@ -129,7 +131,7 @@ export default function AddChildScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleCancel}>
           <ArrowLeft size={24} color={COLORS.gray[800]} />
         </TouchableOpacity>

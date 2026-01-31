@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus, Calendar, User, BarChart3, Bell } from 'lucide-react-native';
 
 import { ClassCard, StatCard, ActionButton } from '../components/common';
@@ -113,6 +114,7 @@ interface Reminder {
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
 
   // State
   const [isLoading, setIsLoading] = useState(true);
@@ -311,7 +313,7 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}
     >
       {/* Header Section */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <Text style={styles.welcomeText}>Welcome back!</Text>
         <Text style={styles.headerTitle}>Track Your Kids' Classes</Text>
         <Text style={styles.headerSubtitle}>
@@ -464,7 +466,6 @@ const styles = StyleSheet.create({
   // Header
   header: {
     backgroundColor: COLORS.primary,
-    paddingTop: 60,
     paddingBottom: 32,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 24,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,13 @@ import {
   Alert,
   Platform,
   ActivityIndicator,
+  ScrollView,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import MapView, { Marker, Region } from 'react-native-maps';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
-import { ArrowLeft, MapPin, Navigation, Check } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Navigation, Check, Building2, Info } from 'lucide-react-native';
 
 import { COLORS } from '../../constants';
 
@@ -24,139 +26,78 @@ type MapPickerRouteParams = {
       locationName?: string;
       address?: string;
     };
-    onLocationSelect: (location: {
-      latitude: number;
-      longitude: number;
-      locationName: string;
-      address: string;
-    }) => void;
   };
 };
 
 export default function MapPickerScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<MapPickerRouteParams, 'MapPicker'>>();
-  const mapRef = useRef<MapView>(null);
+  const insets = useSafeAreaInsets();
 
   const initialLocation = route.params?.initialLocation;
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [markerPosition, setMarkerPosition] = useState({
-    latitude: initialLocation?.latitude || 37.78825,
-    longitude: initialLocation?.longitude || -122.4324,
-  });
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [locationName, setLocationName] = useState(initialLocation?.locationName || '');
   const [address, setAddress] = useState(initialLocation?.address || '');
-  const [region, setRegion] = useState<Region>({
-    latitude: initialLocation?.latitude || 37.78825,
-    longitude: initialLocation?.longitude || -122.4324,
-    latitudeDelta: 0.01,
-    longitudeDelta: 0.01,
-  });
+  const [latitude, setLatitude] = useState(
+    initialLocation?.latitude ? String(initialLocation.latitude) : ''
+  );
+  const [longitude, setLongitude] = useState(
+    initialLocation?.longitude ? String(initialLocation.longitude) : ''
+  );
 
-  useEffect(() => {
-    requestLocationPermission();
-  }, []);
-
-  const requestLocationPermission = async () => {
+  const handleGetCurrentLocation = async () => {
+    setIsFetchingLocation(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       
       if (status !== 'granted') {
         Alert.alert(
           'Permission Denied',
-          'Location permission is required to show your current location on the map.'
+          'Location permission is required to get your current location.'
         );
-        setIsLoading(false);
+        setIsFetchingLocation(false);
         return;
       }
 
-      // Get current location if no initial location provided
-      if (!initialLocation) {
-        const currentLocation = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-
-        const newPosition = {
-          latitude: currentLocation.coords.latitude,
-          longitude: currentLocation.coords.longitude,
-        };
-
-        setMarkerPosition(newPosition);
-        setRegion({
-          ...newPosition,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        });
-
-        // Try to get address
-        await reverseGeocode(newPosition.latitude, newPosition.longitude);
-      }
-    } catch (error) {
-      console.error('Error getting location:', error);
-      Alert.alert('Error', 'Could not get your current location.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const reverseGeocode = async (latitude: number, longitude: number) => {
-    try {
-      const results = await Location.reverseGeocodeAsync({ latitude, longitude });
-      if (results.length > 0) {
-        const result = results[0];
-        const addressParts = [
-          result.street,
-          result.city,
-          result.region,
-          result.postalCode,
-        ].filter(Boolean);
-        
-        setAddress(addressParts.join(', '));
-        
-        if (!locationName) {
-          setLocationName(result.name || result.street || 'Selected Location');
-        }
-      }
-    } catch (error) {
-      console.error('Error reverse geocoding:', error);
-    }
-  };
-
-  const handleMapPress = (event: any) => {
-    const { coordinate } = event.nativeEvent;
-    setMarkerPosition(coordinate);
-    reverseGeocode(coordinate.latitude, coordinate.longitude);
-  };
-
-  const handleMarkerDragEnd = (event: any) => {
-    const { coordinate } = event.nativeEvent;
-    setMarkerPosition(coordinate);
-    reverseGeocode(coordinate.latitude, coordinate.longitude);
-  };
-
-  const handleGoToCurrentLocation = async () => {
-    try {
       const currentLocation = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
 
-      const newPosition = {
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-      };
+      const lat = currentLocation.coords.latitude;
+      const lng = currentLocation.coords.longitude;
 
-      setMarkerPosition(newPosition);
-      mapRef.current?.animateToRegion({
-        ...newPosition,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      });
+      setLatitude(String(lat));
+      setLongitude(String(lng));
 
-      await reverseGeocode(newPosition.latitude, newPosition.longitude);
+      // Try to get address
+      try {
+        const results = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+        if (results.length > 0) {
+          const result = results[0];
+          const addressParts = [
+            result.street,
+            result.city,
+            result.region,
+            result.postalCode,
+          ].filter(Boolean);
+          
+          setAddress(addressParts.join(', '));
+          
+          if (!locationName) {
+            setLocationName(result.name || result.street || 'Current Location');
+          }
+        }
+      } catch (geocodeError) {
+        console.error('Error reverse geocoding:', geocodeError);
+      }
+
+      Alert.alert('Success', 'Current location captured!');
     } catch (error) {
-      console.error('Error getting current location:', error);
-      Alert.alert('Error', 'Could not get your current location.');
+      console.error('Error getting location:', error);
+      Alert.alert('Error', 'Could not get your current location. Please enter coordinates manually.');
+    } finally {
+      setIsFetchingLocation(false);
     }
   };
 
@@ -166,116 +107,174 @@ export default function MapPickerScreen() {
       return;
     }
 
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+
+    if (isNaN(lat) || isNaN(lng)) {
+      Alert.alert('Invalid Coordinates', 'Please enter valid latitude and longitude values, or use "Get Current Location".');
+      return;
+    }
+
+    if (lat < -90 || lat > 90) {
+      Alert.alert('Invalid Latitude', 'Latitude must be between -90 and 90.');
+      return;
+    }
+
+    if (lng < -180 || lng > 180) {
+      Alert.alert('Invalid Longitude', 'Longitude must be between -180 and 180.');
+      return;
+    }
+
     // Navigate back with the selected location
     navigation.navigate('AddClass', {
       selectedLocation: {
-        latitude: markerPosition.latitude,
-        longitude: markerPosition.longitude,
+        latitude: lat,
+        longitude: lng,
         locationName: locationName.trim(),
         address: address.trim(),
       },
     });
   };
 
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading map...</Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <ArrowLeft size={24} color={COLORS.gray[800]} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pick Location</Text>
+        <Text style={styles.headerTitle}>Set Location</Text>
         <View style={styles.headerSpacer} />
       </View>
 
-      {/* Map */}
-      <View style={styles.mapContainer}>
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          initialRegion={region}
-          onPress={handleMapPress}
-          showsUserLocation
-          showsMyLocationButton={false}
-        >
-          <Marker
-            coordinate={markerPosition}
-            draggable
-            onDragEnd={handleMarkerDragEnd}
-          />
-        </MapView>
-
-        {/* Current Location Button */}
-        <TouchableOpacity
-          style={styles.currentLocationButton}
-          onPress={handleGoToCurrentLocation}
-        >
-          <Navigation size={22} color={COLORS.primary} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Location Details Card */}
-      <View style={styles.detailsCard}>
-        <View style={styles.detailsHeader}>
-          <MapPin size={20} color={COLORS.primary} />
-          <Text style={styles.detailsTitle}>Selected Location</Text>
-        </View>
-
-        <TextInput
-          style={styles.locationNameInput}
-          placeholder="Enter location name (e.g., Music School)"
-          placeholderTextColor={COLORS.gray[400]}
-          value={locationName}
-          onChangeText={setLocationName}
-        />
-
-        <View style={styles.coordinatesRow}>
-          <Text style={styles.coordinatesLabel}>Coordinates:</Text>
-          <Text style={styles.coordinatesValue}>
-            {markerPosition.latitude.toFixed(6)}, {markerPosition.longitude.toFixed(6)}
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Info Card */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoHeader}>
+            <Info size={20} color={COLORS.info} />
+            <Text style={styles.infoTitle}>Location for Check-In</Text>
+          </View>
+          <Text style={styles.infoText}>
+            Enter the location where this class takes place. This will be used for automatic attendance tracking when you're nearby.
           </Text>
         </View>
 
-        {address ? (
-          <View style={styles.addressRow}>
-            <Text style={styles.addressLabel}>Address:</Text>
-            <Text style={styles.addressValue}>{address}</Text>
-          </View>
-        ) : null}
+        {/* Get Current Location Button */}
+        <TouchableOpacity
+          style={styles.currentLocationButton}
+          onPress={handleGetCurrentLocation}
+          disabled={isFetchingLocation}
+        >
+          {isFetchingLocation ? (
+            <ActivityIndicator size="small" color={COLORS.primary} />
+          ) : (
+            <Navigation size={20} color={COLORS.primary} />
+          )}
+          <Text style={styles.currentLocationText}>
+            {isFetchingLocation ? 'Getting Location...' : 'Use Current Location'}
+          </Text>
+        </TouchableOpacity>
 
-        <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or enter manually</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        {/* Form */}
+        <View style={styles.form}>
+          {/* Location Name */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Location Name *</Text>
+            <View style={styles.inputWithIcon}>
+              <Building2 size={20} color={COLORS.gray[400]} />
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., Dance Studio, Music School"
+                placeholderTextColor={COLORS.gray[400]}
+                value={locationName}
+                onChangeText={setLocationName}
+              />
+            </View>
+          </View>
+
+          {/* Address */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Address (Optional)</Text>
+            <View style={styles.inputWithIcon}>
+              <MapPin size={20} color={COLORS.gray[400]} />
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., 123 Main St, City"
+                placeholderTextColor={COLORS.gray[400]}
+                value={address}
+                onChangeText={setAddress}
+              />
+            </View>
+          </View>
+
+          {/* Coordinates */}
+          <View style={styles.coordinatesRow}>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={styles.label}>Latitude</Text>
+              <TextInput
+                style={styles.coordinateInput}
+                placeholder="e.g., 37.7749"
+                placeholderTextColor={COLORS.gray[400]}
+                value={latitude}
+                onChangeText={setLatitude}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={styles.label}>Longitude</Text>
+              <TextInput
+                style={styles.coordinateInput}
+                placeholder="e.g., -122.4194"
+                placeholderTextColor={COLORS.gray[400]}
+                value={longitude}
+                onChangeText={setLongitude}
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+
+          <Text style={styles.coordinateHint}>
+            Tip: Use "Use Current Location" above to automatically fill coordinates when you're at the class location.
+          </Text>
+        </View>
+      </ScrollView>
+
+      {/* Bottom Button */}
+      <View style={[styles.bottomContainer, { paddingBottom: insets.bottom + 16 }]}>
+        <TouchableOpacity
+          style={[
+            styles.confirmButton,
+            (!locationName.trim() || !latitude || !longitude) && styles.confirmButtonDisabled,
+          ]}
+          onPress={handleConfirm}
+          disabled={!locationName.trim() || !latitude || !longitude}
+        >
           <Check size={20} color="#FFFFFF" />
           <Text style={styles.confirmButtonText}>Confirm Location</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.gray[50],
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.gray[50],
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: COLORS.gray[500],
+    backgroundColor: '#FFFFFF',
   },
 
   // Header
@@ -284,7 +283,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 60 : 20,
     paddingBottom: 16,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
@@ -302,56 +300,109 @@ const styles = StyleSheet.create({
     width: 40,
   },
 
-  // Map
-  mapContainer: {
-    flex: 1,
-    position: 'relative',
-  },
-  map: {
+  // Content
+  content: {
     flex: 1,
   },
-  currentLocationButton: {
-    position: 'absolute',
-    right: 16,
-    bottom: 16,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
+  scrollContent: {
+    padding: 20,
   },
 
-  // Details Card
-  detailsCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+  // Info Card
+  infoCard: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
   },
-  detailsHeader: {
+  infoHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
     gap: 8,
+    marginBottom: 8,
   },
-  detailsTitle: {
+  infoTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.info,
+  },
+  infoText: {
+    fontSize: 14,
+    color: COLORS.gray[600],
+    lineHeight: 20,
+  },
+
+  // Current Location Button
+  currentLocationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    borderStyle: 'dashed',
+    gap: 10,
+  },
+  currentLocationText: {
     fontSize: 16,
     fontWeight: '600',
+    color: COLORS.primary,
+  },
+
+  // Divider
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.gray[200],
+  },
+  dividerText: {
+    paddingHorizontal: 12,
+    fontSize: 13,
+    color: COLORS.gray[500],
+  },
+
+  // Form
+  form: {
+    gap: 16,
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.gray[700],
+  },
+  inputWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.gray[50],
+    borderWidth: 1,
+    borderColor: COLORS.gray[200],
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 15,
     color: COLORS.gray[800],
   },
-  locationNameInput: {
+  coordinatesRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  coordinateInput: {
     backgroundColor: COLORS.gray[50],
     borderWidth: 1,
     borderColor: COLORS.gray[200],
@@ -359,37 +410,21 @@ const styles = StyleSheet.create({
     padding: 14,
     fontSize: 15,
     color: COLORS.gray[800],
-    marginBottom: 12,
-  },
-  coordinatesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  coordinatesLabel: {
-    fontSize: 13,
-    color: COLORS.gray[500],
-    marginRight: 8,
-  },
-  coordinatesValue: {
-    fontSize: 13,
-    color: COLORS.gray[700],
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
-  addressRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  addressLabel: {
+  coordinateHint: {
     fontSize: 13,
     color: COLORS.gray[500],
-    marginRight: 8,
+    lineHeight: 18,
+    marginTop: 4,
   },
-  addressValue: {
-    fontSize: 13,
-    color: COLORS.gray[700],
-    flex: 1,
+
+  // Bottom
+  bottomContainer: {
+    padding: 20,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.gray[200],
   },
   confirmButton: {
     flexDirection: 'row',
@@ -398,12 +433,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingVertical: 16,
     borderRadius: 12,
-    marginTop: 8,
+    gap: 8,
+  },
+  confirmButtonDisabled: {
+    backgroundColor: COLORS.gray[300],
   },
   confirmButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 8,
   },
 });

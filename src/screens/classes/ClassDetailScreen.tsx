@@ -11,6 +11,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft,
@@ -67,6 +68,7 @@ const DAY_LABELS: Record<string, string> = {
 export default function ClassDetailScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<ClassDetailRouteParams, 'ClassDetail'>>();
+  const insets = useSafeAreaInsets();
   const { classId } = route.params;
 
   const [isLoading, setIsLoading] = useState(true);
@@ -229,7 +231,7 @@ export default function ClassDetailScreen() {
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Gradient Header */}
-        <LinearGradient colors={gradientColors} style={styles.header}>
+        <LinearGradient colors={gradientColors} style={[styles.header, { paddingTop: insets.top + 16 }]}>
           {/* Back Button & Actions */}
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>

@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
   Edit3,
@@ -52,6 +53,7 @@ interface RecentAttendance {
 export default function ChildDetailScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<ChildDetailRouteParams, 'ChildDetail'>>();
+  const insets = useSafeAreaInsets();
   const { childId } = route.params;
 
   const [isLoading, setIsLoading] = useState(true);
@@ -234,7 +236,7 @@ export default function ChildDetailScreen() {
       {/* Header with Gradient */}
       <LinearGradient
         colors={['#8B5CF6', '#7C3AED']}
-        style={styles.headerGradient}
+        style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
       >
         <View style={styles.headerContent}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>

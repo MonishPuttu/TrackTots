@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Search, Filter, Plus, BookOpen } from 'lucide-react-native';
 
 import { ClassListCard } from '../components/classes';
@@ -39,6 +40,7 @@ interface SectionData {
 
 export default function ClassesScreen() {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [classes, setClasses] = useState<ClassWithChild[]>([]);
@@ -237,7 +239,7 @@ export default function ClassesScreen() {
   const totalClasses = filteredSections.reduce((sum, section) => sum + section.data.length, 0);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>

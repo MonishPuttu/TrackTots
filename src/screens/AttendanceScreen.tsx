@@ -8,9 +8,9 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Platform,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus, Calendar } from 'lucide-react-native';
 import { Q } from '@nozbe/watermelondb';
 
@@ -42,6 +42,7 @@ interface RecordWithDetails {
 
 export default function AttendanceScreen() {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
@@ -257,7 +258,7 @@ export default function AttendanceScreen() {
         }
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
           <Text style={styles.headerTitle}>Attendance</Text>
         </View>
 
@@ -394,7 +395,6 @@ const styles = StyleSheet.create({
   // Header
   header: {
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingBottom: 16,
     backgroundColor: COLORS.gray[50],
   },

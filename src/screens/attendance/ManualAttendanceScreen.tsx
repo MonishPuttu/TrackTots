@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Info, Check, X, Clock } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Q } from '@nozbe/watermelondb';
@@ -36,6 +37,7 @@ type AttendanceStatus = 'present' | 'absent' | 'excused' | 'late';
 export default function ManualAttendanceScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<ManualAttendanceRouteParams, 'ManualAttendance'>>();
+  const insets = useSafeAreaInsets();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -235,7 +237,7 @@ export default function ManualAttendanceScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleCancel}>
           <ArrowLeft size={24} color={COLORS.gray[800]} />
         </TouchableOpacity>

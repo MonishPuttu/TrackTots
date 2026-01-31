@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Calendar, Users, Check, Plus } from 'lucide-react-native';
 import { Q } from '@nozbe/watermelondb';
 
@@ -38,6 +39,7 @@ interface ClassWithAttendance {
 export default function DayDetailScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<DayDetailRouteParams, 'DayDetail'>>();
+  const insets = useSafeAreaInsets();
   const { date } = route.params;
 
   const [isLoading, setIsLoading] = useState(true);
@@ -175,7 +177,7 @@ export default function DayDetailScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <ArrowLeft size={24} color={COLORS.gray[800]} />
         </TouchableOpacity>

@@ -13,6 +13,7 @@ import {
   Switch,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
   MapPin,
@@ -61,6 +62,7 @@ type EditClassRouteParams = {
 export default function EditClassScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<EditClassRouteParams, 'EditClass'>>();
+  const insets = useSafeAreaInsets();
   const { classId } = route.params;
 
   const [isLoading, setIsLoading] = useState(true);
@@ -332,7 +334,7 @@ export default function EditClassScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleCancel}>
           <ArrowLeft size={24} color={COLORS.gray[800]} />
         </TouchableOpacity>
