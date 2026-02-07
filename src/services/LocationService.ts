@@ -4,8 +4,10 @@ import { Alert } from 'react-native';
 import { Q } from '@nozbe/watermelondb';
 import database from '../database';
 import type Class from '../database/models/Class';
+import type Child from '../database/models/Child';
 import type AttendanceRecord from '../database/models/AttendanceRecord';
 import type { Schedule, DaySchedule } from '../types';
+import NotificationService from './NotificationService';
 
 // Task name constant
 export const LOCATION_TASK_NAME = 'background-location-task';
@@ -473,6 +475,16 @@ class LocationService {
       });
 
       console.log(`[LocationService] ✓ Attendance marked successfully for "${classItem.name}"`);
+
+      // Send attendance confirmation notification
+      if (classItem.enableAttendanceNotification) {
+        try {
+          const childName = await NotificationService.getChildNameForClass(classItem);
+          await NotificationService.sendAttendanceConfirmation(classItem, childName);
+        } catch (notifError) {
+          console.warn('[LocationService] Failed to send attendance notification:', notifError);
+        }
+      }
     } catch (error) {
       console.error('[LocationService] Error marking attendance:', error);
     }
