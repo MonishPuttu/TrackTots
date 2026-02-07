@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, Filter, Plus, BookOpen } from 'lucide-react-native';
+import { Search, Filter, Plus, BookOpen, AlertTriangle, RefreshCw } from 'lucide-react-native';
 
 import { ClassListCard } from '../components/classes';
 import { COLORS, CATEGORIES } from '../constants';
@@ -48,9 +48,11 @@ export default function ClassesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChildFilter, setSelectedChildFilter] = useState<string | null>(null);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
+      setError(null);
       const [allClasses, allChildren] = await Promise.all([
         getAllActiveClasses(),
         getActiveChildren(),
@@ -71,8 +73,9 @@ export default function ClassesScreen() {
 
       setClasses(classesWithChildren);
       setChildren(allChildren);
-    } catch (error) {
-      console.error('Error loading classes:', error);
+    } catch (err) {
+      console.error('Error loading classes:', err);
+      setError('Unable to load classes. Pull down to try again.');
     }
   }, []);
 
@@ -236,6 +239,22 @@ export default function ClassesScreen() {
     );
   }
 
+  if (error && classes.length === 0) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.errorState}>
+          <AlertTriangle size={48} color={COLORS.warning} />
+          <Text style={styles.errorTitle}>Something went wrong</Text>
+          <Text style={styles.errorSubtitle}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadData}>
+            <RefreshCw size={18} color="#FFFFFF" />
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   const totalClasses = filteredSections.reduce((sum, section) => sum + section.data.length, 0);
 
   return (
@@ -354,6 +373,9 @@ export default function ClassesScreen() {
         }
         showsVerticalScrollIndicator={false}
         stickySectionHeadersEnabled={false}
+        initialNumToRender={8}
+        maxToRenderPerBatch={10}
+        windowSize={5}
       />
     </View>
   );
@@ -532,5 +554,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+
+  // Error State
+  errorState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.gray[700],
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorSubtitle: {
+    fontSize: 14,
+    color: COLORS.gray[500],
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

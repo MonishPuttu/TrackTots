@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Plus, Calendar } from 'lucide-react-native';
+import { Plus, Calendar, AlertTriangle, RefreshCw } from 'lucide-react-native';
 import { Q } from '@nozbe/watermelondb';
 
 import { CalendarGrid, AttendanceRecordCard } from '../components/attendance';
@@ -59,9 +59,11 @@ export default function AttendanceScreen() {
   // Filter state
   const [selectedChildFilter, setSelectedChildFilter] = useState<string | null>(null);
   const [selectedTimeFilter, setSelectedTimeFilter] = useState<'week' | 'month' | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
+      setError(null);
       const [allChildren, allClasses] = await Promise.all([
         getActiveChildren(),
         getAllActiveClasses(),
@@ -75,8 +77,9 @@ export default function AttendanceScreen() {
       
       // Load recent records
       await loadRecentRecords(allChildren, allClasses);
-    } catch (error) {
-      console.error('Error loading attendance data:', error);
+    } catch (err) {
+      console.error('Error loading attendance data:', err);
+      setError('Unable to load attendance data. Pull down to try again.');
     }
   }, [currentYear, currentMonth]);
 
@@ -243,6 +246,22 @@ export default function AttendanceScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
         <Text style={styles.loadingText}>Loading attendance...</Text>
+      </View>
+    );
+  }
+
+  if (error && recentRecords.length === 0) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.errorState}>
+          <AlertTriangle size={48} color={COLORS.warning} />
+          <Text style={styles.errorTitle}>Something went wrong</Text>
+          <Text style={styles.errorSubtitle}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadData}>
+            <RefreshCw size={18} color="#FFFFFF" />
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -503,5 +522,41 @@ const styles = StyleSheet.create({
     color: COLORS.gray[500],
     marginTop: 4,
     textAlign: 'center',
+  },
+
+  // Error State
+  errorState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.gray[700],
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorSubtitle: {
+    fontSize: 14,
+    color: COLORS.gray[500],
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

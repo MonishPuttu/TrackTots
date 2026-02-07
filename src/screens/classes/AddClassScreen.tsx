@@ -203,8 +203,19 @@ export default function AddClassScreen() {
       Alert.alert('Required', 'Please enter a class name.');
       return false;
     }
-    if (!locationName.trim() || latitude === 0) {
+    if (className.trim().length > 100) {
+      Alert.alert('Too Long', 'Class name must be 100 characters or less.');
+      return false;
+    }
+    if (!locationName.trim() || (latitude === 0 && longitude === 0)) {
       Alert.alert('Required', 'Please select a location on the map.');
+      return false;
+    }
+
+    // Validate geofence radius
+    const radiusNum = parseInt(geofenceRadius, 10);
+    if (isNaN(radiusNum) || radiusNum < 50 || radiusNum > 5000) {
+      Alert.alert('Invalid Radius', 'Geofence radius must be between 50 and 5000 meters.');
       return false;
     }
 
@@ -214,9 +225,32 @@ export default function AddClassScreen() {
       return false;
     }
 
-    if (instructorEmail.trim() && !instructorEmail.includes('@')) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address.');
-      return false;
+    // Validate that end time is after start time for each enabled day
+    for (const [dayKey, daySchedule] of Object.entries(schedule)) {
+      if (daySchedule.enabled) {
+        if (daySchedule.startTime >= daySchedule.endTime) {
+          const dayName = dayKey.charAt(0).toUpperCase() + dayKey.slice(1);
+          Alert.alert('Invalid Schedule', `End time must be after start time on ${dayName}.`);
+          return false;
+        }
+      }
+    }
+
+    if (instructorEmail.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(instructorEmail.trim())) {
+        Alert.alert('Invalid Email', 'Please enter a valid email address.');
+        return false;
+      }
+    }
+
+    // Validate pickup reminder minutes
+    if (enablePickupReminder) {
+      const reminderMins = parseInt(pickupReminderMinutes, 10);
+      if (isNaN(reminderMins) || reminderMins < 1 || reminderMins > 120) {
+        Alert.alert('Invalid Reminder', 'Pickup reminder must be between 1 and 120 minutes.');
+        return false;
+      }
     }
 
     return true;
@@ -236,13 +270,13 @@ export default function AddClassScreen() {
         locationAddress: locationAddress.trim() || undefined,
         latitude,
         longitude,
-        geofenceRadius: parseInt(geofenceRadius, 10) || 100,
+        geofenceRadius: Math.max(50, Math.min(5000, parseInt(geofenceRadius, 10) || 100)),
         schedule,
         instructorName: instructorName.trim() || undefined,
         instructorContact: instructorPhone.trim() || undefined,
         instructorEmail: instructorEmail.trim() || undefined,
         enablePickupReminder,
-        pickupReminderMinutes: parseInt(pickupReminderMinutes, 10) || 15,
+        pickupReminderMinutes: Math.max(1, Math.min(120, parseInt(pickupReminderMinutes, 10) || 15)),
         enableAttendanceNotification,
         autoAttendanceEnabled: true,
       });

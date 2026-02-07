@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Plus, Calendar, User, BarChart3, Bell, Settings } from 'lucide-react-native';
+import { Plus, Calendar, User, BarChart3, Bell, Settings, AlertTriangle, RefreshCw } from 'lucide-react-native';
 
 import { ClassCard, StatCard, ActionButton } from '../components/common';
 import { COLORS } from '../constants';
@@ -125,6 +125,7 @@ export default function HomeScreen() {
   const [weeklyStats, setWeeklyStats] = useState({ attended: 0, total: 0 });
   const [monthlyRate, setMonthlyRate] = useState(0);
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   // Calculate pickup reminder time
   const calculatePickupTime = (endTime: string, reminderMinutes: number): string => {
@@ -138,6 +139,7 @@ export default function HomeScreen() {
   // Load all dashboard data
   const loadDashboardData = useCallback(async () => {
     try {
+      setError(null);
       // Load children
       const activeChildren = await getActiveChildren();
       setChildren(activeChildren);
@@ -234,8 +236,9 @@ export default function HomeScreen() {
         .slice(0, 3);
 
       setReminders(upcomingReminders);
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
+    } catch (err) {
+      console.error('Error loading dashboard data:', err);
+      setError('Unable to load dashboard. Pull down to try again.');
     }
   }, []);
 
@@ -294,6 +297,20 @@ export default function HomeScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
         <Text style={styles.loadingText}>Loading dashboard...</Text>
+      </View>
+    );
+  }
+
+  if (error && todaysClasses.length === 0 && children.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <AlertTriangle size={48} color={COLORS.warning} />
+        <Text style={styles.errorTitle}>Something went wrong</Text>
+        <Text style={styles.errorSubtitle}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={loadDashboardData}>
+          <RefreshCw size={18} color="#FFFFFF" />
+          <Text style={styles.retryButtonText}>Try Again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -627,5 +644,36 @@ const styles = StyleSheet.create({
 
   bottomSpacer: {
     height: 24,
+  },
+
+  // Error State
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.gray[700],
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorSubtitle: {
+    fontSize: 14,
+    color: COLORS.gray[500],
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+    paddingHorizontal: 40,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

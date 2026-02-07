@@ -118,6 +118,18 @@ export default function EditChildScreen() {
       Alert.alert('Required Field', 'Please enter the child\'s name.');
       return false;
     }
+    if (name.trim().length > 50) {
+      Alert.alert('Too Long', 'Name must be 50 characters or less.');
+      return false;
+    }
+    if (nickname.trim().length > 30) {
+      Alert.alert('Too Long', 'Nickname must be 30 characters or less.');
+      return false;
+    }
+    if (dateOfBirth && dateOfBirth > new Date()) {
+      Alert.alert('Invalid Date', 'Date of birth cannot be in the future.');
+      return false;
+    }
     return true;
   };
 
@@ -171,8 +183,12 @@ export default function EditChildScreen() {
   };
 
   const handleCancel = () => {
+    // Build the display name the same way handleSave does for accurate comparison
+    const currentDisplayName = nickname.trim() 
+      ? `${name.trim()} (${nickname.trim()})` 
+      : name.trim();
     const hasChanges = 
-      name !== (originalChild?.name || '') ||
+      currentDisplayName !== (originalChild?.name || '') ||
       notes !== (originalChild?.notes || '') ||
       (dateOfBirth?.getTime() || null) !== (originalChild?.dateOfBirth || null);
 

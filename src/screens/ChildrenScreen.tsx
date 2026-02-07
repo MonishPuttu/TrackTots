@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Plus, Users } from 'lucide-react-native';
+import { Plus, Users, AlertTriangle, RefreshCw } from 'lucide-react-native';
 
 import { ChildCard } from '../components/children';
 import { COLORS } from '../constants';
@@ -33,9 +33,11 @@ export default function ChildrenScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [childrenWithStats, setChildrenWithStats] = useState<ChildWithStats[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const loadChildren = useCallback(async () => {
     try {
+      setError(null);
       const children = await getActiveChildren();
       
       // Calculate stats for each child
@@ -61,7 +63,7 @@ export default function ChildrenScreen() {
           }
           
           const attendanceRate = totalRecords > 0
-            ? Math.round((attendedRecords / totalRecords) * 100)
+            ? Math.min(100, Math.max(0, Math.round((attendedRecords / totalRecords) * 100)))
             : 0;
           
           return { child, classCount, attendanceRate };
@@ -69,8 +71,9 @@ export default function ChildrenScreen() {
       );
       
       setChildrenWithStats(childrenData);
-    } catch (error) {
-      console.error('Error loading children:', error);
+    } catch (err) {
+      console.error('Error loading children:', err);
+      setError('Unable to load children. Pull down to try again.');
     }
   }, []);
 
@@ -138,11 +141,31 @@ export default function ChildrenScreen() {
     </View>
   );
 
+  const renderErrorState = () => (
+    <View style={styles.errorState}>
+      <AlertTriangle size={48} color={COLORS.warning} />
+      <Text style={styles.errorTitle}>Something went wrong</Text>
+      <Text style={styles.errorSubtitle}>{error}</Text>
+      <TouchableOpacity style={styles.retryButton} onPress={loadChildren}>
+        <RefreshCw size={18} color="#FFFFFF" />
+        <Text style={styles.retryButtonText}>Try Again</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
         <Text style={styles.loadingText}>Loading children...</Text>
+      </View>
+    );
+  }
+
+  if (error && childrenWithStats.length === 0) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        {renderErrorState()}
       </View>
     );
   }
@@ -187,6 +210,10 @@ export default function ChildrenScreen() {
           />
         }
         showsVerticalScrollIndicator={false}
+        initialNumToRender={8}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
       />
     </View>
   );
@@ -312,5 +339,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+
+  // Error State
+  errorState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.gray[700],
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorSubtitle: {
+    fontSize: 14,
+    color: COLORS.gray[500],
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

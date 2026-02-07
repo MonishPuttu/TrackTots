@@ -21,6 +21,8 @@ import {
   ChevronRight,
   BarChart3,
   Download,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Q } from '@nozbe/watermelondb';
@@ -77,6 +79,7 @@ export default function ReportsScreen() {
   const [attendanceRate, setAttendanceRate] = useState(0);
   const [classAttendance, setClassAttendance] = useState<ClassAttendanceData[]>([]);
   const [weeklyData, setWeeklyData] = useState<WeekData[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const timeRangeOptions: { value: TimeRange; label: string }[] = [
     { value: 'this_month', label: 'This Month' },
@@ -127,6 +130,7 @@ export default function ReportsScreen() {
 
   const loadData = useCallback(async () => {
     try {
+      setError(null);
       const [allChildren, allClasses] = await Promise.all([
         getActiveChildren(),
         getAllActiveClasses(),
@@ -134,8 +138,9 @@ export default function ReportsScreen() {
       setChildren(allChildren);
       setClasses(allClasses);
       await calculateStats(allChildren, allClasses);
-    } catch (error) {
-      console.error('Error loading reports data:', error);
+    } catch (err) {
+      console.error('Error loading reports data:', err);
+      setError('Unable to load reports. Pull down to try again.');
     }
   }, [selectedChildId, selectedTimeRange, customStartDate, customEndDate]);
 
@@ -193,7 +198,7 @@ export default function ReportsScreen() {
     // Calculate present count
     const presentRecords = records.filter(r => r.status === 'present' || r.status === 'late');
     const present = presentRecords.length;
-    const rate = scheduled > 0 ? Math.round((present / scheduled) * 100) : 0;
+    const rate = scheduled > 0 ? Math.min(100, Math.max(0, Math.round((present / scheduled) * 100))) : 0;
 
     setTotalScheduled(scheduled);
     setTotalPresent(present);
@@ -204,7 +209,7 @@ export default function ReportsScreen() {
       const classRecords = records.filter(r => r.classId === cls.id);
       const classPresent = classRecords.filter(r => r.status === 'present' || r.status === 'late').length;
       const classScheduled = classScheduledMap.get(cls.id) || 0;
-      const percentage = classScheduled > 0 ? Math.round((classPresent / classScheduled) * 100) : 0;
+      const percentage = classScheduled > 0 ? Math.min(100, Math.max(0, Math.round((classPresent / classScheduled) * 100))) : 0;
 
       return {
         classId: cls.id,
@@ -321,6 +326,20 @@ export default function ReportsScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
         <Text style={styles.loadingText}>Loading reports...</Text>
+      </View>
+    );
+  }
+
+  if (error && classAttendance.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <AlertTriangle size={48} color={COLORS.warning} />
+        <Text style={styles.errorTitle}>Something went wrong</Text>
+        <Text style={styles.errorSubtitle}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={loadData}>
+          <RefreshCw size={18} color="#FFFFFF" />
+          <Text style={styles.retryButtonText}>Try Again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -506,7 +525,7 @@ export default function ReportsScreen() {
               {classAttendance.slice(0, 4).map((item, index) => (
                 <View key={item.classId} style={styles.classItem}>
                   <View style={styles.classHeader}>
-                    <Text style={styles.className}>{item.className}</Text>
+                    <Text style={styles.className} numberOfLines={1}>{item.className}</Text>
                     <Text style={styles.classRatio}>
                       {item.present}/{item.totalScheduled}
                     </Text>
@@ -887,5 +906,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.gray[500],
     textAlign: 'center',
+  },
+
+  // Error State
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.gray[700],
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorSubtitle: {
+    fontSize: 14,
+    color: COLORS.gray[500],
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+    paddingHorizontal: 40,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

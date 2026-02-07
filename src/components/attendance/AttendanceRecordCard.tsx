@@ -80,8 +80,8 @@ export default function AttendanceRecordCard({
       disabled={!onPress}
     >
       <View style={styles.leftContent}>
-        <Text style={styles.childName}>{childName}</Text>
-        <Text style={styles.className}>{className}</Text>
+        <Text style={styles.childName} numberOfLines={1}>{childName}</Text>
+        <Text style={styles.className} numberOfLines={1}>{className}</Text>
         <View style={styles.timeRow}>
           <Text style={styles.date}>{formatDate(date)}</Text>
           {checkInTime && (
