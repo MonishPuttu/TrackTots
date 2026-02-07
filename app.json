@@ -20,7 +20,10 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location to automatically track class attendance based on your child's class locations.",
         "NSLocationWhenInUseUsageDescription": "We need your location to track when your child arrives at class.",
         "NSLocationAlwaysUsageDescription": "We need background location access to automatically mark attendance when your child reaches class.",
-        "UIBackgroundModes": ["location", "fetch"]
+        "UIBackgroundModes": [
+          "location",
+          "fetch"
+        ]
       }
     },
     "android": {
@@ -34,7 +37,9 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_LOCATION"
+        "FOREGROUND_SERVICE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
@@ -47,6 +52,11 @@
           "locationAlwaysAndWhenInUsePermission": "Allow TrackTots to use your location to automatically track class attendance."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "0edcea5a-5178-4bde-a11e-8987c463b483"
+      }
+    }
   }
 }
