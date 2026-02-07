@@ -13,6 +13,7 @@ import AttendanceScreen from '../screens/AttendanceScreen';
 import { ManualAttendanceScreen, DayDetailScreen } from '../screens/attendance';
 import ReportsScreen from '../screens/ReportsScreen';
 import { ExportReportScreen } from '../screens/reports';
+import SettingsScreen from '../screens/SettingsScreen';
 
 // Stack param lists
 type ChildrenStackParamList = {
@@ -57,6 +58,13 @@ type RootTabParamList = {
   Reports: undefined;
 };
 
+// Root stack wraps tabs so Settings can be reached from any tab
+type RootStackParamList = {
+  Tabs: undefined;
+  Settings: undefined;
+};
+
+const RootStack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const ChildrenStack = createNativeStackNavigator<ChildrenStackParamList>();
 const ClassesStack = createNativeStackNavigator<ClassesStackParamList>();
@@ -109,9 +117,9 @@ function ReportsStackNavigator() {
   );
 }
 
-export default function AppNavigator() {
+function TabNavigator() {
   const insets = useSafeAreaInsets();
-  
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -164,5 +172,18 @@ export default function AppNavigator() {
         }}
       />
     </Tab.Navigator>
+  );
+}
+
+export default function AppNavigator() {
+  return (
+    <RootStack.Navigator screenOptions={{ headerShown: false }}>
+      <RootStack.Screen name="Tabs" component={TabNavigator} />
+      <RootStack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+    </RootStack.Navigator>
   );
 }

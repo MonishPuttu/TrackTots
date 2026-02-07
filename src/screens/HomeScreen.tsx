@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Plus, Calendar, User, BarChart3, Bell } from 'lucide-react-native';
+import { Plus, Calendar, User, BarChart3, Bell, Settings } from 'lucide-react-native';
 
 import { ClassCard, StatCard, ActionButton } from '../components/common';
 import { COLORS } from '../constants';
@@ -314,7 +314,16 @@ export default function HomeScreen() {
     >
       {/* Header Section */}
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-        <Text style={styles.welcomeText}>Welcome back!</Text>
+        <View style={styles.headerTopRow}>
+          <Text style={styles.welcomeText}>Welcome back!</Text>
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={() => navigation.navigate('Settings')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Settings size={22} color="rgba(255, 255, 255, 0.9)" />
+          </TouchableOpacity>
+        </View>
         <Text style={styles.headerTitle}>Track Your Kids' Classes</Text>
         <Text style={styles.headerSubtitle}>
           {children.length} children • {totalClasses} active classes
@@ -471,10 +480,20 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  settingsButton: {
+    padding: 6,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
   welcomeText: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
   },
   headerTitle: {
     fontSize: 26,
