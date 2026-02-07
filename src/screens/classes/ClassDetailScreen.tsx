@@ -28,7 +28,22 @@ import {
   TrendingUp,
   Bell,
 } from 'lucide-react-native';
-import MapView, { Marker, Circle } from 'react-native-maps';
+
+// Import MapView with a try-catch fallback
+let MapView: any = null;
+let Marker: any = null;
+let Circle: any = null;
+let mapsAvailable = false;
+
+try {
+  const RNMaps = require('react-native-maps');
+  MapView = RNMaps.default;
+  Marker = RNMaps.Marker;
+  Circle = RNMaps.Circle;
+  mapsAvailable = true;
+} catch (e) {
+  console.warn('react-native-maps not available:', e);
+}
 
 import { COLORS, CLASS_COLORS } from '../../constants';
 import database from '../../database';
@@ -321,37 +336,47 @@ export default function ClassDetailScreen() {
 
           {/* Mini Map */}
           <View style={styles.mapContainer}>
-            <MapView
-              style={styles.map}
-              initialRegion={{
-                latitude: classData.latitude,
-                longitude: classData.longitude,
-                latitudeDelta: 0.005,
-                longitudeDelta: 0.005,
-              }}
-              scrollEnabled={false}
-              zoomEnabled={false}
-              rotateEnabled={false}
-              pitchEnabled={false}
-            >
-              <Marker
-                coordinate={{
+            {mapsAvailable && MapView ? (
+              <MapView
+                style={styles.map}
+                initialRegion={{
                   latitude: classData.latitude,
                   longitude: classData.longitude,
+                  latitudeDelta: 0.005,
+                  longitudeDelta: 0.005,
                 }}
-                pinColor={classColor}
-              />
-              <Circle
-                center={{
-                  latitude: classData.latitude,
-                  longitude: classData.longitude,
-                }}
-                radius={classData.geofenceRadius}
-                fillColor={`${classColor}20`}
-                strokeColor={classColor}
-                strokeWidth={2}
-              />
-            </MapView>
+                scrollEnabled={false}
+                zoomEnabled={false}
+                rotateEnabled={false}
+                pitchEnabled={false}
+              >
+                <Marker
+                  coordinate={{
+                    latitude: classData.latitude,
+                    longitude: classData.longitude,
+                  }}
+                  pinColor={classColor}
+                />
+                <Circle
+                  center={{
+                    latitude: classData.latitude,
+                    longitude: classData.longitude,
+                  }}
+                  radius={classData.geofenceRadius}
+                  fillColor={`${classColor}20`}
+                  strokeColor={classColor}
+                  strokeWidth={2}
+                />
+              </MapView>
+            ) : (
+              <View style={[styles.map, styles.mapFallback]}>
+                <MapPin size={32} color={COLORS.gray[400]} />
+                <Text style={styles.mapFallbackText}>
+                  {classData.latitude.toFixed(6)}, {classData.longitude.toFixed(6)}
+                </Text>
+                <Text style={styles.mapFallbackSubtext}>Map view not available</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -646,6 +671,22 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  mapFallback: {
+    backgroundColor: COLORS.gray[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  mapFallbackText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.gray[600],
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  mapFallbackSubtext: {
+    fontSize: 12,
+    color: COLORS.gray[400],
   },
 
   // Instructor

@@ -52,6 +52,7 @@ type AddClassRouteParams = {
       longitude: number;
       locationName: string;
       address: string;
+      accuracy?: number;
     };
   };
 };
@@ -117,6 +118,14 @@ export default function AddClassScreen() {
       setLocationAddress(loc.address);
       setLatitude(loc.latitude);
       setLongitude(loc.longitude);
+      
+      // Auto-adjust geofence radius based on GPS accuracy
+      // If accuracy > 30m, set radius to accuracy × 2 (minimum 100m)
+      // This ensures geofence is larger than GPS uncertainty
+      if (loc.accuracy && loc.accuracy > 30) {
+        const suggestedRadius = Math.max(100, Math.round(loc.accuracy * 2));
+        setGeofenceRadius(String(suggestedRadius));
+      }
     }
   }, [route.params?.selectedLocation]);
 

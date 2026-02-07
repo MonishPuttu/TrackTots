@@ -81,6 +81,22 @@ export const schema = appSchema({
         { name: 'updated_at', type: 'number' },
       ],
     }),
+
+    // Geofence events table (for tracking location-based attendance events)
+    tableSchema({
+      name: 'geofence_events',
+      columns: [
+        { name: 'class_id', type: 'string', isIndexed: true },
+        { name: 'event_type', type: 'string', isIndexed: true }, // 'enter' | 'exit'
+        { name: 'event_time', type: 'number' },
+        { name: 'latitude', type: 'number' },
+        { name: 'longitude', type: 'number' },
+        { name: 'accuracy', type: 'number' },
+        { name: 'was_processed', type: 'boolean' },
+        { name: 'created_attendance_record', type: 'boolean' },
+        { name: 'created_at', type: 'number' },
+      ],
+    }),
   ],
 });
 
