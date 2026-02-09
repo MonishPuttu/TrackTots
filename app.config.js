@@ -1,0 +1,61 @@
+module.exports = {
+  expo: {
+    name: "TrackTots",
+    slug: "tracktots",
+    version: "1.0.0",
+    orientation: "portrait",
+    icon: "./assets/icon.png",
+    userInterfaceStyle: "automatic",
+    splash: {
+      resizeMode: "contain",
+      backgroundColor: "#3B82F6",
+    },
+    assetBundlePatterns: ["**/*"],
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: "com.tracktots.app",
+      infoPlist: {
+        NSLocationAlwaysAndWhenInUseUsageDescription:
+          "We need your location to automatically track class attendance based on your child's class locations.",
+        NSLocationWhenInUseUsageDescription:
+          "We need your location to track when your child arrives at class.",
+        NSLocationAlwaysUsageDescription:
+          "We need background location access to automatically mark attendance when your child reaches class.",
+        UIBackgroundModes: ["location", "fetch"],
+      },
+    },
+    android: {
+      adaptiveIcon: {
+        foregroundImage: "./assets/adaptive-icon.png",
+        backgroundColor: "#ffffff",
+      },
+      package: "com.tracktots.app",
+      permissions: [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+      ],
+    },
+    web: {
+      favicon: "./assets/favicon.png",
+    },
+    plugins: [
+      [
+        "expo-location",
+        {
+          locationAlwaysAndWhenInUsePermission:
+            "Allow TrackTots to use your location to automatically track class attendance.",
+        },
+      ],
+    ],
+    extra: {
+      eas: {
+        projectId: "0edcea5a-5178-4bde-a11e-8987c463b483",
+      },
+    },
+  },
+};

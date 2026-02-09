@@ -28,22 +28,46 @@ import {
   TrendingUp,
   Bell,
 } from 'lucide-react-native';
+import { WebView } from 'react-native-webview';
 
-// Import MapView with a try-catch fallback
-let MapView: any = null;
-let Marker: any = null;
-let Circle: any = null;
-let mapsAvailable = false;
-
-try {
-  const RNMaps = require('react-native-maps');
-  MapView = RNMaps.default;
-  Marker = RNMaps.Marker;
-  Circle = RNMaps.Circle;
-  mapsAvailable = true;
-} catch (e) {
-  console.warn('react-native-maps not available:', e);
-}
+const getMiniMapHTML = (lat: number, lng: number, radius: number, color: string) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+  <style>
+    * { margin: 0; padding: 0; }
+    html, body, #map { width: 100%; height: 100%; }
+    .leaflet-control-attribution { font-size: 8px; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    var map = L.map('map', {
+      zoomControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      touchZoom: false,
+    }).setView([${lat}, ${lng}], 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OSM',
+      maxZoom: 19,
+    }).addTo(map);
+    L.marker([${lat}, ${lng}]).addTo(map);
+    L.circle([${lat}, ${lng}], {
+      radius: ${radius},
+      color: '${color}',
+      fillColor: '${color}',
+      fillOpacity: 0.15,
+    }).addTo(map);
+  <\/script>
+</body>
+</html>
+`;
 
 import { COLORS, CLASS_COLORS } from '../../constants';
 import database from '../../database';
@@ -336,47 +360,20 @@ export default function ClassDetailScreen() {
 
           {/* Mini Map */}
           <View style={styles.mapContainer}>
-            {mapsAvailable && MapView ? (
-              <MapView
-                style={styles.map}
-                initialRegion={{
-                  latitude: classData.latitude,
-                  longitude: classData.longitude,
-                  latitudeDelta: 0.005,
-                  longitudeDelta: 0.005,
-                }}
-                scrollEnabled={false}
-                zoomEnabled={false}
-                rotateEnabled={false}
-                pitchEnabled={false}
-              >
-                <Marker
-                  coordinate={{
-                    latitude: classData.latitude,
-                    longitude: classData.longitude,
-                  }}
-                  pinColor={classColor}
-                />
-                <Circle
-                  center={{
-                    latitude: classData.latitude,
-                    longitude: classData.longitude,
-                  }}
-                  radius={classData.geofenceRadius}
-                  fillColor={`${classColor}20`}
-                  strokeColor={classColor}
-                  strokeWidth={2}
-                />
-              </MapView>
-            ) : (
-              <View style={[styles.map, styles.mapFallback]}>
-                <MapPin size={32} color={COLORS.gray[400]} />
-                <Text style={styles.mapFallbackText}>
-                  {classData.latitude.toFixed(6)}, {classData.longitude.toFixed(6)}
-                </Text>
-                <Text style={styles.mapFallbackSubtext}>Map view not available</Text>
-              </View>
-            )}
+            <WebView
+              style={styles.map}
+              source={{
+                html: getMiniMapHTML(
+                  classData.latitude,
+                  classData.longitude,
+                  classData.geofenceRadius,
+                  classColor
+                ),
+              }}
+              javaScriptEnabled
+              domStorageEnabled
+              scrollEnabled={false}
+            />
           </View>
         </View>
 

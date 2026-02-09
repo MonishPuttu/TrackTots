@@ -14,26 +14,11 @@ import {
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
-import { ArrowLeft, Navigation, Check, MapPin } from 'lucide-react-native';
+import { WebView } from 'react-native-webview';
+import { ArrowLeft, Navigation, Check } from 'lucide-react-native';
 
 import { COLORS } from '../../constants';
 import LocationService from '../../services/LocationService';
-
-// Import MapView with error handling
-let MapView: any = null;
-let Marker: any = null;
-let Circle: any = null;
-let mapsAvailable = false;
-
-try {
-  const RNMaps = require('react-native-maps');
-  MapView = RNMaps.default;
-  Marker = RNMaps.Marker;
-  Circle = RNMaps.Circle;
-  mapsAvailable = true;
-} catch (e) {
-  console.warn('react-native-maps not available:', e);
-}
 
 type MapPickerRouteParams = {
   MapPicker: {
@@ -53,11 +38,94 @@ interface LocationData {
   accuracy: number;
 }
 
+const getLeafletHTML = (lat: number, lng: number, accuracy: number) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+  <style>
+    * { margin: 0; padding: 0; }
+    html, body, #map { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    var map = L.map('map').setView([${lat}, ${lng}], 16);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19,
+    }).addTo(map);
+
+    var marker = L.marker([${lat}, ${lng}], { draggable: true }).addTo(map);
+    
+    var circle = null;
+    if (${accuracy} > 0) {
+      circle = L.circle([${lat}, ${lng}], {
+        radius: ${accuracy},
+        color: 'rgba(59, 130, 246, 0.5)',
+        fillColor: 'rgba(59, 130, 246, 0.2)',
+        fillOpacity: 0.3,
+      }).addTo(map);
+    }
+
+    function sendLocation(lat, lng) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'locationSelected',
+        latitude: lat,
+        longitude: lng,
+      }));
+    }
+
+    marker.on('dragend', function(e) {
+      var pos = e.target.getLatLng();
+      sendLocation(pos.lat, pos.lng);
+      if (circle) circle.setLatLng(pos);
+    });
+
+    map.on('click', function(e) {
+      marker.setLatLng(e.latlng);
+      sendLocation(e.latlng.lat, e.latlng.lng);
+      if (circle) circle.setLatLng(e.latlng);
+    });
+
+    function handleMessage(event) {
+      try {
+        var data = JSON.parse(event.data);
+        if (data.type === 'moveTo') {
+          var latlng = L.latLng(data.latitude, data.longitude);
+          map.setView(latlng, 16);
+          marker.setLatLng(latlng);
+          if (circle) {
+            circle.setLatLng(latlng);
+            if (data.accuracy > 0) circle.setRadius(data.accuracy);
+          } else if (data.accuracy > 0) {
+            circle = L.circle(latlng, {
+              radius: data.accuracy,
+              color: 'rgba(59, 130, 246, 0.5)',
+              fillColor: 'rgba(59, 130, 246, 0.2)',
+              fillOpacity: 0.3,
+            }).addTo(map);
+          }
+        }
+      } catch(e) {}
+    }
+
+    window.addEventListener('message', handleMessage);
+    document.addEventListener('message', handleMessage);
+  <\/script>
+</body>
+</html>
+`;
+
 export default function MapPickerScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<MapPickerRouteParams, 'MapPicker'>>();
   const insets = useSafeAreaInsets();
-  const mapRef = useRef<any>(null);
+  const webViewRef = useRef<WebView>(null);
 
   const initialLocation = route.params?.initialLocation;
   const returnScreen = route.params?.returnScreen || 'AddClass';
@@ -74,8 +142,11 @@ export default function MapPickerScreen() {
         }
       : null
   );
+  const [mapReady, setMapReady] = useState(false);
 
-  // Auto-detect location on mount
+  const defaultLat = initialLocation?.latitude ?? 37.7749;
+  const defaultLng = initialLocation?.longitude ?? -122.4194;
+
   useEffect(() => {
     if (!initialLocation) {
       fetchCurrentLocation();
@@ -101,7 +172,6 @@ export default function MapPickerScreen() {
         return;
       }
 
-      // Use LocationService's getCurrentLocation for high accuracy
       const instance = LocationService.getInstance();
       const currentLocation = await instance.getCurrentLocation();
 
@@ -114,7 +184,17 @@ export default function MapPickerScreen() {
           accuracy: accuracy || 0,
         });
 
-        // Reverse geocode to get address
+        if (mapReady && webViewRef.current) {
+          webViewRef.current.postMessage(
+            JSON.stringify({
+              type: 'moveTo',
+              latitude,
+              longitude,
+              accuracy: accuracy || 0,
+            })
+          );
+        }
+
         try {
           const results = await Location.reverseGeocodeAsync({ latitude, longitude });
           if (results.length > 0 && !locationName) {
@@ -124,16 +204,6 @@ export default function MapPickerScreen() {
           }
         } catch (geocodeError) {
           console.warn('Reverse geocoding failed:', geocodeError);
-        }
-
-        // Animate map to the location
-        if (mapRef.current) {
-          mapRef.current.animateToRegion({
-            latitude,
-            longitude,
-            latitudeDelta: 0.005,
-            longitudeDelta: 0.005,
-          });
         }
       } else {
         Alert.alert(
@@ -155,18 +225,6 @@ export default function MapPickerScreen() {
     await fetchCurrentLocation();
   };
 
-  const handleMarkerDragEnd = (event: any) => {
-    const { latitude, longitude } = event.nativeEvent.coordinate;
-    setLocation((prev) => ({
-      latitude,
-      longitude,
-      accuracy: prev?.accuracy || 0, // Keep original GPS accuracy
-    }));
-
-    // Optionally reverse geocode the new location
-    reverseGeocodeLocation(latitude, longitude);
-  };
-
   const reverseGeocodeLocation = async (latitude: number, longitude: number) => {
     try {
       const results = await Location.reverseGeocodeAsync({ latitude, longitude });
@@ -183,14 +241,20 @@ export default function MapPickerScreen() {
     }
   };
 
-  const handleMapPress = (event: any) => {
-    const { latitude, longitude } = event.nativeEvent.coordinate;
-    setLocation((prev) => ({
-      latitude,
-      longitude,
-      accuracy: prev?.accuracy || 0,
-    }));
-    reverseGeocodeLocation(latitude, longitude);
+  const handleWebViewMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'locationSelected') {
+        setLocation((prev) => ({
+          latitude: data.latitude,
+          longitude: data.longitude,
+          accuracy: prev?.accuracy || 0,
+        }));
+        reverseGeocodeLocation(data.latitude, data.longitude);
+      }
+    } catch (e) {
+      console.warn('Failed to parse WebView message:', e);
+    }
   };
 
   const handleConfirm = () => {
@@ -204,7 +268,6 @@ export default function MapPickerScreen() {
       return;
     }
 
-    // Navigate back with the selected location
     navigation.navigate(returnScreen, {
       selectedLocation: {
         latitude: location.latitude,
@@ -218,32 +281,15 @@ export default function MapPickerScreen() {
 
   const getAccuracyColor = (accuracy: number): string => {
     if (accuracy < 20) return COLORS.success;
-    if (accuracy <= 50) return '#F59E0B'; // Amber
+    if (accuracy <= 50) return '#F59E0B';
     return COLORS.danger;
   };
 
   const getAccuracyBackgroundColor = (accuracy: number): string => {
-    if (accuracy < 20) return '#DCFCE7'; // Light green
-    if (accuracy <= 50) return '#FEF3C7'; // Light amber
-    return '#FEE2E2'; // Light red
+    if (accuracy < 20) return '#DCFCE7';
+    if (accuracy <= 50) return '#FEF3C7';
+    return '#FEE2E2';
   };
-
-  // Default region if no location yet
-  const defaultRegion = {
-    latitude: 37.7749,
-    longitude: -122.4194,
-    latitudeDelta: 0.01,
-    longitudeDelta: 0.01,
-  };
-
-  const mapRegion = location
-    ? {
-        latitude: location.latitude,
-        longitude: location.longitude,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
-      }
-    : defaultRegion;
 
   return (
     <KeyboardAvoidingView
@@ -261,62 +307,39 @@ export default function MapPickerScreen() {
 
       {/* Map View */}
       <View style={styles.mapWrapper}>
-        {isLoadingLocation && !location ? (
+        {isLoadingLocation && !location && !mapReady ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={COLORS.primary} />
             <Text style={styles.loadingText}>Getting your location...</Text>
           </View>
-        ) : mapsAvailable && MapView ? (
-          <MapView
-            ref={mapRef}
-            style={styles.map}
-            initialRegion={mapRegion}
-            onPress={handleMapPress}
-            showsUserLocation
-            showsMyLocationButton={false}
-          >
-            {location && (
-              <>
-                <Marker
-                  coordinate={{
-                    latitude: location.latitude,
-                    longitude: location.longitude,
-                  }}
-                  draggable
-                  onDragEnd={handleMarkerDragEnd}
-                  pinColor={COLORS.primary}
-                />
-                {location.accuracy > 0 && (
-                  <Circle
-                    center={{
-                      latitude: location.latitude,
-                      longitude: location.longitude,
-                    }}
-                    radius={location.accuracy}
-                    fillColor="rgba(59, 130, 246, 0.2)"
-                    strokeColor="rgba(59, 130, 246, 0.5)"
-                    strokeWidth={1}
-                  />
-                )}
-              </>
-            )}
-          </MapView>
         ) : (
-          <View style={styles.mapFallback}>
-            <MapPin size={48} color={COLORS.gray[400]} />
-            <Text style={styles.mapFallbackText}>Map not available</Text>
-            {location && (
-              <Text style={styles.mapFallbackCoords}>
-                {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
-              </Text>
+          <WebView
+            ref={webViewRef}
+            source={{
+              html: getLeafletHTML(
+                location?.latitude ?? defaultLat,
+                location?.longitude ?? defaultLng,
+                location?.accuracy ?? 0
+              ),
+            }}
+            style={styles.map}
+            onMessage={handleWebViewMessage}
+            onLoad={() => setMapReady(true)}
+            javaScriptEnabled
+            domStorageEnabled
+            startInLoadingState
+            renderLoading={() => (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text style={styles.loadingText}>Loading map...</Text>
+              </View>
             )}
-          </View>
+          />
         )}
       </View>
 
       {/* Bottom Info Card */}
       <View style={[styles.infoCard, { paddingBottom: insets.bottom + 16 }]}>
-        {/* Use Current Location Button */}
         <TouchableOpacity
           style={styles.currentLocationButton}
           onPress={handleUseCurrentLocation}
@@ -332,7 +355,6 @@ export default function MapPickerScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* Location Name Input */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Location Name</Text>
           <TextInput
@@ -344,7 +366,6 @@ export default function MapPickerScreen() {
           />
         </View>
 
-        {/* Coordinates Display */}
         {location && (
           <View style={styles.coordinatesContainer}>
             <View style={styles.coordinatesRow}>
@@ -354,7 +375,6 @@ export default function MapPickerScreen() {
               </Text>
             </View>
 
-            {/* Accuracy Badge */}
             {location.accuracy > 0 && (
               <View style={styles.accuracyRow}>
                 <Text style={styles.accuracyLabel}>Accuracy:</Text>
@@ -373,7 +393,6 @@ export default function MapPickerScreen() {
               </View>
             )}
 
-            {/* Low Accuracy Warning */}
             {location.accuracy > 50 && (
               <Text style={styles.warningText}>
                 ⚠️ Low accuracy. Move to an open area for better GPS signal.
@@ -382,12 +401,10 @@ export default function MapPickerScreen() {
           </View>
         )}
 
-        {/* Drag Hint */}
         <Text style={styles.hintText}>
           Tap on the map or drag the marker to adjust the location
         </Text>
 
-        {/* Confirm Button */}
         <TouchableOpacity
           style={[
             styles.confirmButton,
@@ -409,8 +426,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -433,8 +448,6 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 40,
   },
-
-  // Map
   mapWrapper: {
     flex: 1,
   },
@@ -452,24 +465,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.gray[600],
   },
-  mapFallback: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.gray[100],
-    gap: 12,
-  },
-  mapFallbackText: {
-    fontSize: 16,
-    color: COLORS.gray[500],
-  },
-  mapFallbackCoords: {
-    fontSize: 14,
-    color: COLORS.gray[600],
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-
-  // Info Card
   infoCard: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
@@ -482,8 +477,6 @@ const styles = StyleSheet.create({
     elevation: 10,
     gap: 16,
   },
-
-  // Current Location Button
   currentLocationButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -500,8 +493,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.primary,
   },
-
-  // Input
   inputGroup: {
     gap: 6,
   },
@@ -520,8 +511,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.gray[800],
   },
-
-  // Coordinates
   coordinatesContainer: {
     gap: 8,
   },
@@ -563,15 +552,11 @@ const styles = StyleSheet.create({
     color: '#D97706',
     marginTop: 4,
   },
-
-  // Hint
   hintText: {
     fontSize: 13,
     color: COLORS.gray[500],
     textAlign: 'center',
   },
-
-  // Confirm Button
   confirmButton: {
     flexDirection: 'row',
     alignItems: 'center',
