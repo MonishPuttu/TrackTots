@@ -1,0 +1,1 @@
+Class started. Attendance: done. Nobody tapped a thing. TrackTots is my React Native app that marks my kid's class attendance automatically with background location and a geofence around each class, and it reminds you when it's pickup time. https://github.com/MonishPuttu/TrackTots
